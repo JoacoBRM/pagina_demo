@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Machine Learning · Portfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan: #00e5ff;
+      --purple: #7c3aed;
+      --pink: #f472b6;
+      --green: #00ff88;
+      --bg: #04040f;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Space Grotesk', sans-serif;
+      color: white;
+      cursor: none;
+      user-select: none;
+    }
+
+    /* CURSOR */
+    #cur { position:fixed; width:10px; height:10px; background:var(--cyan); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:screen; }
+    #cur-ring { position:fixed; width:36px; height:36px; border:1px solid rgba(0,229,255,.45); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:width .15s,height .15s; }
+
+    /* BG CANVAS */
+    #bg { position:fixed; inset:0; z-index:1; }
+
+    /* DATA STREAMS */
+    .stream { position:fixed; top:-120%; width:1px; background:linear-gradient(to bottom,transparent,rgba(0,229,255,.25),transparent); animation:fall linear infinite; pointer-events:none; z-index:2; }
+    @keyframes fall { to { top:120%; } }
+
+    /* PROGRESS DOTS */
+    #dots { position:fixed; left:1.8rem; top:50%; transform:translateY(-50%); z-index:100; display:flex; flex-direction:column; gap:.6rem; }
+    .dot { width:5px; height:5px; border-radius:50%; border:1px solid rgba(255,255,255,.25); transition:all .4s; }
+    .dot.on { background:var(--cyan); border-color:var(--cyan); box-shadow:0 0 8px var(--cyan); transform:scale(1.5); }
+
+    /* SCROLL HINT */
+    #hint { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); z-index:100; text-align:center; font-size:.7rem; color:rgba(255,255,255,.35); letter-spacing:.25em; text-transform:uppercase; transition:opacity .6s; }
+    #hint i { display:block; width:1px; height:36px; margin:.5rem auto 0; background:linear-gradient(to bottom,transparent,rgba(0,229,255,.7)); animation:ph 2s infinite; }
+    @keyframes ph { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+    /* SECTION NAME TAG (top-right) */
+    #tag { position:fixed; top:1.6rem; right:2rem; z-index:100; font-family:'JetBrains Mono',monospace; font-size:.72rem; color:rgba(255,255,255,.4); letter-spacing:.15em; text-transform:uppercase; transition:opacity .4s; }
+
+    /* SCENES */
+    .scene {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      will-change: transform, opacity, filter;
+      pointer-events: none;
+    }
+
+    /* ── HERO ── */
+    .s-hero { flex-direction:column; text-align:center; gap:.1rem; }
+    .s-hero .badge { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--cyan); letter-spacing:.3em; text-transform:uppercase; margin-bottom:1.4rem; }
+    .s-hero h1 { font-size:clamp(3.5rem,9vw,7.5rem); font-weight:700; line-height:.95; background:linear-gradient(140deg,#fff 0%,var(--cyan) 45%,var(--purple) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .s-hero p { margin-top:1.4rem; font-size:1.05rem; color:rgba(255,255,255,.42); letter-spacing:.06em; }
+    .stats { display:flex; gap:3.5rem; margin-top:2.8rem; justify-content:center; }
+    .st-v { font-family:'JetBrains Mono',monospace; font-size:1.9rem; color:var(--cyan); font-weight:500; }
+    .st-l { font-size:.72rem; color:rgba(255,255,255,.35); letter-spacing:.12em; text-transform:uppercase; margin-top:.2rem; }
+
+    /* ── SHARED SECTION LAYOUT ── */
+    .s-col { flex-direction:column; gap:1.4rem; align-items:center; }
+    .s-row { flex-direction:row; gap:3rem; align-items:center; }
+    .sec-badge { font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.3em; text-transform:uppercase; opacity:.6; }
+    .sec-title { font-size:clamp(1.8rem,4.5vw,3.2rem); font-weight:700; text-align:center; line-height:1.05; }
+    .sec-sub { font-size:.92rem; color:rgba(255,255,255,.45); text-align:center; max-width:480px; line-height:1.65; }
+    .viz { border-radius:14px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); display:block; }
+
+    /* EQUATION BOX */
+    .eq { font-family:'JetBrains Mono',monospace; font-size:1.25rem; text-align:center; padding:.85rem 1.8rem; border-radius:8px; }
+
+    /* NEURAL SIDEBAR */
+    .n-info { display:flex; flex-direction:column; gap:1rem; max-width:260px; }
+    .epoch-c { font-family:'JetBrains Mono',monospace; font-size:.82rem; color:var(--green); }
+    .bar-wrap { display:flex; flex-direction:column; gap:.55rem; }
+    .bar-lbl { font-size:.68rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.1em; }
+    .bar { height:3px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; }
+    .bar-f { height:100%; border-radius:2px; transition:width .3s; }
+    #met { font-family:'JetBrains Mono',monospace; font-size:.78rem; color:var(--green); margin-top:.2rem; }
+
+    /* NAV LABEL (bottom-left) */
+    #navlbl { position:fixed; bottom:2rem; left:2rem; z-index:100; }
+    #navlbl span { display:block; font-family:'JetBrains Mono',monospace; font-size:.68rem; color:rgba(255,255,255,.25); letter-spacing:.1em; }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<!-- streams -->
+<div id="streams"></div>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+
+<div id="dots">
+  <div class="dot on"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+</div>
+
+<div id="hint">Scroll<i></i></div>
+<div id="tag">IA · Portfolio</div>
+<div id="navlbl"><span id="nlbl">01 / 05</span></div>
+
+<!-- ════════════════════════════════════════
+     SCENE 0 — HERO
+════════════════════════════════════════ -->
+<div class="scene s-hero" id="sc0">
+  <div class="badge">Universidad · Inteligencia Artificial · 2025</div>
+  <h1>Machine<br>Learning</h1>
+  <p>Patrones · Regresión · Redes Neuronales · Predicción</p>
+  <div class="stats">
+    <div>
+      <div class="st-v" id="sv1">0</div>
+      <div class="st-l">Muestras</div>
+    </div>
+    <div>
+      <div class="st-v" id="sv2">0%</div>
+      <div class="st-l">Precisión</div>
+    </div>
+    <div>
+      <div class="st-v" id="sv3">0</div>
+      <div class="st-l">Épocas</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCENE 1 — REGRESIÓN LINEAL
+════════════════════════════════════════ -->
+<div class="scene s-col" id="sc1">
+  <div style="text-align:center">
+    <div class="sec-badge" style="color:var(--cyan)">Módulo 01 · Regresión Lineal</div>
+    <div class="sec-title" style="color:var(--cyan)">Encontrando la<br>mejor línea</div>
+    <div class="sec-sub" style="margin:.6rem auto 0">Minimizamos el error cuadrático medio para hallar<br>los parámetros <em>m</em> y <em>b</em> que mejor ajustan los datos</div>
+  </div>
+  <canvas class="viz" id="rCv" width="620" height="300"></canvas>
+  <div class="eq" style="color:var(--cyan);border:1px solid rgba(0,229,255,.22);background:rgba(0,229,255,.05)">
+    ŷ = <span id="eqM">?</span>&thinsp;x + <span id="eqB">?</span> &nbsp;|&nbsp; R² = <span id="eqR">?</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCENE 2 — RED NEURONAL
+════════════════════════════════════════ -->
+<div class="scene s-row" id="sc2">
+  <div class="n-info">
+    <div class="sec-badge" style="color:var(--purple)">Módulo 02 · Red Neuronal</div>
+    <div class="sec-title" style="text-align:left;color:var(--purple)">Aprendizaje<br>Profundo</div>
+    <p style="font-size:.88rem;color:rgba(255,255,255,.45);line-height:1.65">
+      Capas de neuronas artificiales que aprenden representaciones jerárquicas de los datos mediante backpropagation
+    </p>
+    <div class="epoch-c" id="epc">Época: 0 / 100</div>
+    <div class="bar-wrap">
+      <div class="bar-lbl">Loss</div>
+      <div class="bar"><div class="bar-f" id="lf" style="width:100%;background:linear-gradient(to right,var(--purple),var(--pink))"></div></div>
+      <div class="bar-lbl">Accuracy</div>
+      <div class="bar"><div class="bar-f" id="af" style="width:0%;background:linear-gradient(to right,#00ff88,#00e5ff)"></div></div>
+    </div>
+    <div id="met">loss: —  acc: —</div>
+  </div>
+  <canvas class="viz" id="nCv" width="440" height="380"></canvas>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCENE 3 — PATRONES
+════════════════════════════════════════ -->
+<div class="scene s-col" id="sc3">
+  <div style="text-align:center">
+    <div class="sec-badge" style="color:var(--pink)">Módulo 03 · Reconocimiento de Patrones</div>
+    <div class="sec-title" style="color:var(--pink)">Del caos<br>al patrón</div>
+    <div class="sec-sub" style="margin:.6rem auto 0">Los modelos aprenden a extraer estructuras ocultas —<br>de ruido puro a distribuciones significativas</div>
+  </div>
+  <canvas class="viz" id="pCv" width="560" height="280"></canvas>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCENE 4 — PREDICCIÓN
+════════════════════════════════════════ -->
+<div class="scene s-col" id="sc4">
+  <div style="text-align:center">
+    <div class="sec-badge" style="color:var(--green)">Módulo 04 · Predicción</div>
+    <div class="sec-title" style="color:var(--green)">Viendo<br>el futuro</div>
+    <div class="sec-sub" style="margin:.6rem auto 0">Extrapolamos el conocimiento aprendido para predecir<br>valores futuros con intervalos de confianza</div>
+  </div>
+  <canvas class="viz" id="fCv" width="620" height="260"></canvas>
+  <div class="eq" style="color:var(--green);border:1px solid rgba(0,255,136,.22);background:rgba(0,255,136,.05)">
+    ŷ<sub>t+1</sub> = f(x<sub>t</sub>, θ) &nbsp;|&nbsp; IC&nbsp;95% &nbsp;|&nbsp; MSE: <span id="mse">—</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const N = 5;
+const TAGS = ['01 · Intro','02 · Regresión','03 · Red Neuronal','04 · Patrones','05 · Predicción'];
+const SECTION_NAMES = ['IA · Portfolio','Regresión Lineal','Red Neuronal','Patrones','Predicción'];
+
+// ═══════════════════════════════════════════════════════════════
+// SCROLL STATE (wheel/touch-driven, page doesn't move)
+// ═══════════════════════════════════════════════════════════════
+let progress = 0, vel = 0, firstMove = false;
+
+window.addEventListener('wheel', e => {
+  e.preventDefault();
+  vel += e.deltaY * 0.00025;
+  firstMove = true;
+}, { passive: false });
+
+let ty = 0;
+window.addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  vel += (ty - e.touches[0].clientY) * 0.002;
+  ty = e.touches[0].clientY;
+  firstMove = true;
+}, { passive: false });
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === ' ') { vel += 0.04; firstMove = true; }
+  if (e.key === 'ArrowUp') { vel -= 0.04; firstMove = true; }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MATH HELPERS
+// ═══════════════════════════════════════════════════════════════
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const smoothstep = (lo, hi, v) => { const t = clamp((v - lo) / (hi - lo), 0, 1); return t * t * (3 - 2 * t); };
+const eio = t => t < .5 ? 2*t*t : -1+(4-2*t)*t;
+
+function sectionLP(idx, prog) {
+  const norm = ((prog % N) + N) % N;
+  let lp = norm - idx;
+  if (lp > N / 2) lp -= N;
+  if (lp < -N / 2) lp += N;
+  return lp;
+}
+
+function seededRand(seed) {
+  const x = Math.sin(seed + 1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKGROUND PARTICLES
+// ═══════════════════════════════════════════════════════════════
+const bgC = document.getElementById('bg');
+const bx = bgC.getContext('2d');
+let W, H;
+
+function resizeBg() {
+  W = bgC.width = window.innerWidth;
+  H = bgC.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+const P_COUNT = 110;
+const pts = Array.from({ length: P_COUNT }, (_, i) => ({
+  x: seededRand(i * 3) * W || Math.random() * 800,
+  y: seededRand(i * 3 + 1) * H || Math.random() * 600,
+  vx: (seededRand(i * 3 + 2) - .5) * .35,
+  vy: (seededRand(i * 3 + 5) - .5) * .35,
+  r: seededRand(i * 7) * 1.6 + .4,
+  a: seededRand(i * 11) * .45 + .08,
+  hue: i % 3 === 0 ? 190 : i % 3 === 1 ? 270 : 320,
+}));
+
+function initParticles() {
+  pts.forEach(p => {
+    p.x = Math.random() * W;
+    p.y = Math.random() * H;
+  });
+}
+initParticles();
+
+function drawBg(speed) {
+  bx.fillStyle = 'rgba(4,4,15,.18)';
+  bx.fillRect(0, 0, W, H);
+
+  bx.lineWidth = .5;
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 110) {
+        bx.beginPath();
+        bx.moveTo(pts[i].x, pts[i].y);
+        bx.lineTo(pts[j].x, pts[j].y);
+        bx.strokeStyle = `rgba(0,229,255,${.12 * (1 - d / 110)})`;
+        bx.stroke();
+      }
+    }
+  }
+
+  pts.forEach(p => {
+    p.x += p.vx + speed * 0.4;
+    p.y += p.vy + speed * 25;
+    if (p.x < -5) p.x = W + 5;
+    if (p.x > W + 5) p.x = -5;
+    if (p.y < -5) p.y = H + 5;
+    if (p.y > H + 5) p.y = -5;
+    bx.beginPath();
+    bx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    bx.fillStyle = `hsla(${p.hue},100%,70%,${p.a})`;
+    bx.fill();
+  });
+}
+
+// DATA STREAMS
+const streamsEl = document.getElementById('streams');
+for (let i = 0; i < 18; i++) {
+  const s = document.createElement('div');
+  s.className = 'stream';
+  s.style.left = (seededRand(i * 31) * 100) + '%';
+  s.style.height = (seededRand(i * 17) * 25 + 15) + 'vh';
+  s.style.animationDuration = (seededRand(i * 7) * 9 + 5) + 's';
+  s.style.animationDelay = -(seededRand(i * 13) * 12) + 's';
+  s.style.opacity = seededRand(i * 19) * .15 + .04;
+  streamsEl.appendChild(s);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CURSOR
+// ═══════════════════════════════════════════════════════════════
+const cur = document.getElementById('cur');
+const curR = document.getElementById('cur-ring');
+let mx = -200, my = -200, rx = -200, ry = -200;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+function updateCursor() {
+  cur.style.left = mx + 'px'; cur.style.top = my + 'px';
+  rx = lerp(rx, mx, .11); ry = lerp(ry, my, .11);
+  curR.style.left = rx + 'px'; curR.style.top = ry + 'px';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION TRANSITIONS
+// ═══════════════════════════════════════════════════════════════
+const scenes = Array.from({ length: N }, (_, i) => document.getElementById('sc' + i));
+const dots = Array.from(document.querySelectorAll('.dot'));
+
+function applyScene(el, lp) {
+  let op, sc, ty2, bl;
+
+  if (lp < -0.38 || lp > 1.05) {
+    op = 0; sc = lp < 0 ? .82 : 1.18; ty2 = lp < 0 ? 70 : -70; bl = 18;
+  } else if (lp < 0) {
+    const t = (lp + 0.38) / 0.38;
+    op = eio(t); sc = .82 + .18 * eio(t); ty2 = 70 * (1 - eio(t)); bl = 18 * (1 - eio(t));
+  } else if (lp < 0.55) {
+    op = 1; sc = 1; ty2 = 0; bl = 0;
+  } else if (lp < 1) {
+    const t = (lp - 0.55) / 0.45;
+    op = 1 - eio(t); sc = 1 + .18 * eio(t); ty2 = -70 * eio(t); bl = 18 * eio(t);
+  } else {
+    op = 0; sc = 1.18; ty2 = -70; bl = 18;
+  }
+
+  el.style.opacity = op;
+  el.style.transform = `translateY(${ty2}px) scale(${sc})`;
+  el.style.filter = bl > .5 ? `blur(${bl.toFixed(1)}px)` : '';
+  el.style.pointerEvents = op > .5 ? 'auto' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIZ 1 — LINEAR REGRESSION
+// ═══════════════════════════════════════════════════════════════
+const rCv = document.getElementById('rCv');
+const rc = rCv.getContext('2d');
+
+const rData = [];
+const TM = 1.75, TB = 22;
+for (let i = 0; i < 45; i++) {
+  const x = seededRand(i * 7) * 78 + 10;
+  const y = TM * x + TB + (seededRand(i * 13) - .5) * 44;
+  rData.push({ x, y });
+}
+
+function drawRegr(t) {
+  const cw = rCv.width, ch = rCv.height;
+  rc.clearRect(0, 0, cw, ch);
+  const px = 45, py = 18, pw = cw - px - 18, ph = ch - py - 28;
+
+  // grid
+  rc.strokeStyle = 'rgba(255,255,255,.04)'; rc.lineWidth = 1;
+  for (let g = 0; g <= 6; g++) {
+    rc.beginPath(); rc.moveTo(px + g*pw/6, py); rc.lineTo(px + g*pw/6, py+ph); rc.stroke();
+    rc.beginPath(); rc.moveTo(px, py + g*ph/6); rc.lineTo(px+pw, py + g*ph/6); rc.stroke();
+  }
+
+  // axes
+  rc.strokeStyle = 'rgba(255,255,255,.18)'; rc.lineWidth = 1.5;
+  rc.beginPath(); rc.moveTo(px, py); rc.lineTo(px, py+ph); rc.moveTo(px, py+ph); rc.lineTo(px+pw, py+ph); rc.stroke();
+  rc.fillStyle = 'rgba(255,255,255,.28)'; rc.font = '11px JetBrains Mono,monospace';
+  rc.fillText('X', px+pw+4, py+ph+2); rc.fillText('Y', px-12, py+6);
+
+  const tx = x => px + (x / 100) * pw;
+  const ty2 = y => py + ph - (y / 210) * ph;
+
+  // residuals when t > .65
+  if (t > .65) {
+    const rt = smoothstep(.65, .85, t);
+    rc.setLineDash([2,3]); rc.strokeStyle = `rgba(124,58,237,${rt * .35})`; rc.lineWidth = 1;
+    rData.forEach(p => {
+      rc.beginPath(); rc.moveTo(tx(p.x), ty2(p.y)); rc.lineTo(tx(p.x), ty2(TM*p.x+TB)); rc.stroke();
+    });
+    rc.setLineDash([]);
+  }
+
+  // scatter points
+  const nPts = Math.floor(smoothstep(0, .45, t) * rData.length);
+  for (let i = 0; i < nPts; i++) {
+    const p = rData[i];
+    const cx = tx(p.x), cy = ty2(p.y);
+    const g = rc.createRadialGradient(cx, cy, 0, cx, cy, 7);
+    g.addColorStop(0, 'rgba(0,229,255,.75)'); g.addColorStop(1, 'rgba(0,229,255,0)');
+    rc.beginPath(); rc.arc(cx, cy, 7, 0, Math.PI*2); rc.fillStyle = g; rc.fill();
+    rc.beginPath(); rc.arc(cx, cy, 2.5, 0, Math.PI*2); rc.fillStyle = '#00e5ff'; rc.fill();
+  }
+
+  // regression line
+  if (t > .45) {
+    const lt = smoothstep(.45, .85, t);
+    const x1 = 8, x2 = 8 + lt * 84;
+    rc.beginPath();
+    rc.moveTo(tx(x1), ty2(TM*x1+TB));
+    rc.lineTo(tx(x2), ty2(TM*x2+TB));
+    rc.strokeStyle = '#f472b6'; rc.lineWidth = 2.5;
+    rc.shadowColor = '#f472b6'; rc.shadowBlur = 12; rc.setLineDash([]);
+    rc.stroke(); rc.shadowBlur = 0;
+
+    const m = (TM * lt).toFixed(3);
+    const b = (TB * lt).toFixed(2);
+    const r2 = (0.963 * lt).toFixed(4);
+    document.getElementById('eqM').textContent = m;
+    document.getElementById('eqB').textContent = b;
+    document.getElementById('eqR').textContent = r2;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIZ 2 — NEURAL NETWORK
+// ═══════════════════════════════════════════════════════════════
+const nCv = document.getElementById('nCv');
+const nc = nCv.getContext('2d');
+const LAYERS = [3, 5, 4, 2];
+let nt = 0;
+
+function drawNeural(t) {
+  const cw = nCv.width, ch = nCv.height;
+  nc.clearRect(0, 0, cw, ch);
+
+  const epoch = Math.floor(t * 100);
+  const loss = Math.max(.04, 1 - t * .96);
+  const acc = Math.min(.982, t * .985);
+
+  document.getElementById('epc').textContent = `Época: ${epoch} / 100`;
+  document.getElementById('lf').style.width = (loss * 100) + '%';
+  document.getElementById('af').style.width = (acc * 100) + '%';
+  document.getElementById('met').textContent = `loss: ${loss.toFixed(4)}   acc: ${(acc*100).toFixed(1)}%`;
+
+  const cols = LAYERS.map((n, li) => ({
+    x: 48 + li * (cw - 68) / (LAYERS.length - 1),
+    nodes: Array.from({ length: n }, (_, ni) => ({
+      y: ch / 2 + (ni - (n - 1) / 2) * 58
+    }))
+  }));
+
+  // connections
+  for (let li = 0; li < LAYERS.length - 1; li++) {
+    const from = cols[li], to = cols[li+1];
+    from.nodes.forEach(fn => {
+      to.nodes.forEach(tn => {
+        const pulse = (Math.sin(nt * 2.8 + fn.x * .07 + tn.y * .04) + 1) / 2 * t;
+        nc.beginPath(); nc.moveTo(from.x, fn.y); nc.lineTo(to.x, tn.y);
+        nc.strokeStyle = `rgba(124,58,237,${.04 + pulse * .38})`;
+        nc.lineWidth = .4 + pulse * 1.8;
+        nc.stroke();
+      });
+    });
+  }
+
+  // nodes
+  cols.forEach((col, li) => {
+    col.nodes.forEach(nd => {
+      const act = (Math.sin(nt * 2.5 + col.x * .04 + nd.y * .04) + 1) / 2 * t;
+      const color = li === 0 ? [0, 229, 255] : li === LAYERS.length-1 ? [0, 255, 136] : [244, 114, 182];
+      const [r,g,b] = color;
+
+      const gr = nc.createRadialGradient(col.x, nd.y, 0, col.x, nd.y, 22);
+      gr.addColorStop(0, `rgba(${r},${g},${b},${.35 + act*.4})`);
+      gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      nc.beginPath(); nc.arc(col.x, nd.y, 22, 0, Math.PI*2); nc.fillStyle = gr; nc.fill();
+
+      nc.beginPath(); nc.arc(col.x, nd.y, 10, 0, Math.PI*2);
+      nc.fillStyle = `rgba(4,4,15,.9)`; nc.fill();
+      nc.strokeStyle = `rgb(${r},${g},${b})`; nc.lineWidth = 1.8; nc.stroke();
+
+      if (act > .6) {
+        nc.beginPath(); nc.arc(col.x, nd.y, 10, 0, Math.PI*2);
+        nc.fillStyle = `rgba(${r},${g},${b},${(act-.6)*1.5 * .5})`; nc.fill();
+      }
+    });
+  });
+
+  // labels
+  const lbls = ['Input', 'Hidden', 'Hidden', 'Output'];
+  nc.fillStyle = 'rgba(255,255,255,.25)'; nc.font = '10px JetBrains Mono,monospace'; nc.textAlign = 'center';
+  cols.forEach((col, li) => nc.fillText(lbls[li] || '', col.x, ch - 8));
+
+  nt += .016;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIZ 3 — PATTERNS
+// ═══════════════════════════════════════════════════════════════
+const pCv = document.getElementById('pCv');
+const pc = pCv.getContext('2d');
+let pt2 = 0;
+
+// Pre-compute "random" noise layer
+const COLS = 42, ROWS = 18;
+const NOISE = Array.from({ length: ROWS }, (_, r) =>
+  Array.from({ length: COLS }, (_, c) => seededRand(r * 100 + c))
+);
+
+function patternVal(c, r) {
+  const nx = c / COLS, ny = r / ROWS;
+  const gauss = Math.exp(-((nx-.5)*(nx-.5) * 10 + (ny-.5)*(ny-.5) * 10));
+  const wave = (Math.sin(nx * Math.PI * 5 - pt2 * 1.5) + 1) / 2 * .6;
+  const wave2 = (Math.cos(ny * Math.PI * 3 + pt2) + 1) / 2 * .3;
+  return Math.min(1, gauss * 1.2 + wave * .4 + wave2 * .2);
+}
+
+function drawPattern(t) {
+  const cw = pCv.width, ch = pCv.height;
+  pc.clearRect(0, 0, cw, ch);
+
+  const cw2 = cw / COLS, ch2 = ch / ROWS;
+  const blend = smoothstep(.25, .7, t);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const noiseV = NOISE[r][c];
+      const pv = patternVal(c, r);
+      const val = lerp(noiseV, pv, blend);
+      if (val < .06) continue;
+
+      const cx = c * cw2 + cw2 / 2, cy = r * ch2 + ch2 / 2;
+      const radius = cw2 * .38 * val;
+
+      let color;
+      if (val > .72) color = `rgba(0,229,255,${val * .9})`;
+      else if (val > .42) color = `rgba(124,58,237,${val * .85})`;
+      else color = `rgba(244,114,182,${val * .65})`;
+
+      pc.beginPath(); pc.arc(cx, cy, radius, 0, Math.PI*2);
+      pc.fillStyle = color; pc.fill();
+    }
+  }
+  pt2 += .012;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIZ 4 — PREDICTION
+// ═══════════════════════════════════════════════════════════════
+const fCv = document.getElementById('fCv');
+const fc = fCv.getContext('2d');
+
+const HIST = Array.from({ length: 28 }, (_, i) => ({
+  t: i,
+  y: 100 + Math.sin(i * .45) * 28 + i * 2.2 + (seededRand(i * 31) - .5) * 18
+}));
+const PRED = Array.from({ length: 22 }, (_, i) => ({
+  t: i + 28,
+  y: 100 + Math.sin((i+28) * .45) * 28 + (i+28) * 2.2,
+  ci: (i + 1) * 3.5
+}));
+
+function drawPred(t) {
+  const cw = fCv.width, ch = fCv.height;
+  fc.clearRect(0, 0, cw, ch);
+  const px = 32, py = 16, pw = cw - px - 16, ph = ch - py - 26;
+
+  const allN = 50;
+  const toX = ti => px + (ti / allN) * pw;
+  const toY = v => py + ph - ((v - 55) / 195) * ph;
+
+  // grid
+  fc.strokeStyle = 'rgba(255,255,255,.04)'; fc.lineWidth = 1;
+  for (let g = 1; g < 6; g++) {
+    fc.beginPath(); fc.moveTo(px, py + g*ph/6); fc.lineTo(px+pw, py + g*ph/6); fc.stroke();
+  }
+
+  // historical area
+  fc.beginPath(); fc.moveTo(toX(HIST[0].t), toY(HIST[0].y));
+  HIST.forEach(d => fc.lineTo(toX(d.t), toY(d.y)));
+  fc.lineTo(toX(HIST[HIST.length-1].t), py+ph); fc.lineTo(toX(0), py+ph);
+  fc.closePath(); fc.fillStyle = 'rgba(0,229,255,.06)'; fc.fill();
+
+  // historical line
+  fc.beginPath(); fc.moveTo(toX(HIST[0].t), toY(HIST[0].y));
+  HIST.forEach(d => fc.lineTo(toX(d.t), toY(d.y)));
+  fc.strokeStyle = '#00e5ff'; fc.lineWidth = 2;
+  fc.shadowColor = '#00e5ff'; fc.shadowBlur = 8; fc.setLineDash([]);
+  fc.stroke(); fc.shadowBlur = 0;
+
+  // prediction
+  if (t > .28) {
+    const pt = smoothstep(.28, .88, t);
+    const nP = Math.max(1, Math.floor(pt * PRED.length));
+
+    // CI band
+    fc.beginPath(); fc.moveTo(toX(HIST[HIST.length-1].t), toY(HIST[HIST.length-1].y));
+    PRED.slice(0, nP).forEach(d => fc.lineTo(toX(d.t), toY(d.y + d.ci)));
+    PRED.slice(0, nP).reverse().forEach(d => fc.lineTo(toX(d.t), toY(d.y - d.ci)));
+    fc.closePath(); fc.fillStyle = 'rgba(0,255,136,.1)'; fc.fill();
+
+    // pred line
+    fc.beginPath(); fc.setLineDash([6,4]);
+    fc.moveTo(toX(HIST[HIST.length-1].t), toY(HIST[HIST.length-1].y));
+    PRED.slice(0, nP).forEach(d => fc.lineTo(toX(d.t), toY(d.y)));
+    fc.strokeStyle = '#00ff88'; fc.lineWidth = 2;
+    fc.shadowColor = '#00ff88'; fc.shadowBlur = 8;
+    fc.stroke(); fc.shadowBlur = 0; fc.setLineDash([]);
+
+    const finalMSE = (PRED[nP-1].ci * PRED[nP-1].ci * .12).toFixed(2);
+    document.getElementById('mse').textContent = finalMSE;
+  }
+
+  // "now" marker
+  fc.strokeStyle = 'rgba(255,255,255,.22)'; fc.lineWidth = 1; fc.setLineDash([4,4]);
+  fc.beginPath(); fc.moveTo(toX(27), py); fc.lineTo(toX(27), py+ph); fc.stroke();
+  fc.setLineDash([]);
+  fc.fillStyle = 'rgba(255,255,255,.3)'; fc.font = '9px JetBrains Mono,monospace'; fc.textAlign = 'center';
+  fc.fillText('HOY', toX(27), py - 2);
+
+  // axes
+  fc.strokeStyle = 'rgba(255,255,255,.15)'; fc.lineWidth = 1.5;
+  fc.beginPath(); fc.moveTo(px, py); fc.lineTo(px, py+ph); fc.moveTo(px, py+ph); fc.lineTo(px+pw, py+ph); fc.stroke();
+  fc.fillStyle = 'rgba(255,255,255,.25)'; fc.font = '10px JetBrains Mono,monospace'; fc.textAlign = 'left';
+  fc.fillText('t', px+pw+4, py+ph); fc.textAlign = 'center'; fc.fillText('ŷ', px-2, py-2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HERO STATS COUNTER
+// ═══════════════════════════════════════════════════════════════
+let statsPlayed = false;
+function triggerStats() {
+  if (statsPlayed) return; statsPlayed = true;
+  const targets = [{ id:'sv1', n:12487, suffix:'' }, { id:'sv2', n:97.4, suffix:'%', dec:1 }, { id:'sv3', n:500, suffix:'' }];
+  targets.forEach(({ id, n, suffix, dec }) => {
+    const el = document.getElementById(id);
+    const dur = 1600, start = performance.now();
+    function tick(now) {
+      const t2 = Math.min((now - start) / dur, 1);
+      const v = eio(t2) * n;
+      el.textContent = (dec ? v.toFixed(dec) : Math.floor(v).toLocaleString()) + suffix;
+      if (t2 < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+function resetStats() { statsPlayed = false; }
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+let last = 0;
+
+function loop(ts) {
+  const dt = Math.min((ts - last) / 1000, .05);
+  last = ts;
+
+  // physics
+  vel *= Math.pow(.80, dt * 60);
+  progress += vel;
+
+  // scenes
+  const norm = ((progress % N) + N) % N;
+  const currentSection = Math.round(norm) % N;
+
+  scenes.forEach((sc, i) => applyScene(sc, sectionLP(i, progress)));
+  dots.forEach((d, i) => d.classList.toggle('on', i === currentSection));
+
+  // section label
+  document.getElementById('nlbl').textContent =
+    String(currentSection + 1).padStart(2,'0') + ' / ' + N;
+  document.getElementById('tag').textContent = SECTION_NAMES[currentSection];
+
+  // background
+  drawBg(vel);
+  updateCursor();
+
+  // hint fade
+  if (firstMove) document.getElementById('hint').style.opacity = '0';
+
+  // visualizations — pass vizT = local progress mapped 0→1 during active window
+  function vizT(idx) {
+    const lp = sectionLP(idx, progress);
+    return clamp(smoothstep(-.1, .65, lp), 0, 1);
+  }
+
+  const lp1 = sectionLP(1, progress);
+  if (lp1 > -.4 && lp1 < 1.1) drawRegr(vizT(1));
+
+  const lp2 = sectionLP(2, progress);
+  if (lp2 > -.4 && lp2 < 1.1) drawNeural(vizT(2));
+
+  const lp3 = sectionLP(3, progress);
+  if (lp3 > -.4 && lp3 < 1.1) drawPattern(vizT(3));
+
+  const lp4 = sectionLP(4, progress);
+  if (lp4 > -.4 && lp4 < 1.1) drawPred(vizT(4));
+
+  // hero stats
+  const lp0 = sectionLP(0, progress);
+  if (lp0 > .15 && lp0 < .6) triggerStats();
+  if (lp0 < -.1 || lp0 > .85) resetStats();
+
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
