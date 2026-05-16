@@ -214,7 +214,7 @@ let progress = 0, vel = 0, firstMove = false;
 
 window.addEventListener('wheel', e => {
   e.preventDefault();
-  vel += e.deltaY * 0.00025;
+  vel += e.deltaY * 0.00008;
   firstMove = true;
 }, { passive: false });
 
